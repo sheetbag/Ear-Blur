@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Blur Challenge</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-red-50 to-pink-50 p-8">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-4xl font-bold text-gray-800 mb-8 text-center">
+            YouTube Blur Challenge
+        </h1>
+
+        <div id="inputSection" class="bg-white rounded-lg shadow-lg p-8">
+            <label class="block text-lg font-medium text-gray-700 mb-3">
+                Lim inn YouTube Shorts-lenke:
+            </label>
+            <input
+                type="text"
+                id="urlInput"
+                placeholder="https://youtube.com/shorts/..."
+                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-red-500 mb-4"
+            />
+            <button
+                onclick="runVideo()"
+                class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+            >
+                Kjør
+            </button>
+        </div>
+
+        <div id="videoSection" class="bg-white rounded-lg shadow-lg p-8 hidden">
+            <div class="relative mb-6">
+                <iframe
+                    id="videoFrame"
+                    width="100%"
+                    height="500"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    class="rounded-lg"
+                    style="filter: blur(20px); transition: filter 0.3s ease;"
+                ></iframe>
+            </div>
+
+            <div class="flex gap-4">
+                <button
+                    id="showAnswerBtn"
+                    onclick="showAnswer()"
+                    class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200"
+                >
+                    Vis fasit
+                </button>
+                <button
+                    id="resetBtn"
+                    onclick="reset()"
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition duration-200 hidden"
+                >
+                    Ny video
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function extractVideoId(url) {
+            const patterns = [
+                /youtube\.com\/shorts\/([a-zA-Z0-9_-]+)/,
+                /youtu\.be\/([a-zA-Z0-9_-]+)/,
+                /youtube\.com\/watch\?v=([a-zA-Z0-9_-]+)/,
+                /youtube\.com\/embed\/([a-zA-Z0-9_-]+)/
+            ];
+            
+            for (const pattern of patterns) {
+                const match = url.match(pattern);
+                if (match) return match[1];
+            }
+            return null;
+        }
+
+        function runVideo() {
+            const url = document.getElementById('urlInput').value;
+            const videoId = extractVideoId(url);
+            
+            if (videoId) {
+                document.getElementById('videoFrame').src = `https://www.youtube.com/embed/${videoId}`;
+                document.getElementById('inputSection').classList.add('hidden');
+                document.getElementById('videoSection').classList.remove('hidden');
+                document.getElementById('videoFrame').style.filter = 'blur(20px)';
+                document.getElementById('showAnswerBtn').classList.remove('hidden');
+                document.getElementById('resetBtn').classList.add('hidden');
+            } else {
+                alert('Ugyldig YouTube-lenke. Vennligst prøv igjen.');
+            }
+        }
+
+        function showAnswer() {
+            document.getElementById('videoFrame').style.filter = 'none';
+            document.getElementById('showAnswerBtn').classList.add('hidden');
+            document.getElementById('resetBtn').classList.remove('hidden');
+        }
+
+        function reset() {
+            document.getElementById('urlInput').value = '';
+            document.getElementById('videoFrame').src = '';
+            document.getElementById('inputSection').classList.remove('hidden');
+            document.getElementById('videoSection').classList.add('hidden');
+        }
+
+        document.getElementById('urlInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                runVideo();
+            }
+        });
+    </script>
+</body>
+</html>
