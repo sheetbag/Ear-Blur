@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Shorts Blur Quiz</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px;
+            color: #333;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 500px;
+            margin-bottom: 30px;
+        }
+
+        input {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #game-area {
+            display: none; /* Skjult til man trykker kjør */
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* Container for videoen for å håndtere størrelse og blur */
+        .video-wrapper {
+            position: relative;
+            width: 315px; /* Standard bredde for Shorts */
+            height: 560px;
+            background: black;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            transition: filter 0.5s ease;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+
+        /* Klassen som gjør videoen utydelig */
+        .blurred {
+            filter: blur(20px);
+            pointer-events: none; /* Hindrer at man pauser/klikker mens den er blurred */
+        }
+
+        #reveal-btn {
+            background-color: #28a745;
+            padding: 15px 30px;
+            font-size: 18px;
+        }
+
+        #reveal-btn:hover {
+            background-color: #218838;
+        }
+
+        .hint {
+            font-size: 0.9em;
+            color: #666;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Gjett Videoen! 🎬</h1>
+
+    <div class="controls">
+        <input type="text" id="videoUrl" placeholder="Lim inn YouTube Shorts-lenke her...">
+        <button onclick="startQuiz()">Kjør</button>
+    </div>
+
+    <div id="game-area">
+        <div class="video-wrapper blurred" id="videoContainer">
+            </div>
+        
+        <p class="hint">Videoen spiller uten lyd. Kjenner du den igjen?</p>
+
+        <button id="reveal-btn" onclick="showAnswer()">Vis fasit</button>
+    </div>
+
+    <script>
+        function startQuiz() {
+            const inputUrl = document.getElementById('videoUrl').value;
+            const videoContainer = document.getElementById('videoContainer');
+            const gameArea = document.getElementById('game-area');
+            const revealBtn = document.getElementById('reveal-btn');
+
+            // 1. Finn Video ID fra lenken
+            const videoId = extractVideoID(inputUrl);
+
+            if (!videoId) {
+                alert("Kunne ikke finne en gyldig YouTube-ID. Sjekk lenken.");
+                return;
+            }
+
+            // 2. Nullstill (hvis man kjører flere ganger)
+            videoContainer.innerHTML = '';
+            videoContainer.classList.add('blurred'); // Legg på blur igjen
+            revealBtn.style.display = 'block'; // Vis fasit-knappen igjen
+            
+            // 3. Lag iframe-URL
+            // autoplay=1 starter videoen
+            // mute=1 er nødvendig for at autoplay skal fungere i Chrome/Safari
+            // controls=0 skjuler spillerkontrollene for renere utseende
+            // loop=1 og playlist=ID gjør at den looper
+            const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=0&loop=1&playlist=${videoId}`;
+
+            // 4. Sett inn iframe
+            const iframe = document.createElement('iframe');
+            iframe.src = embedUrl;
+            iframe.allow = "autoplay; encrypted-media";
+            videoContainer.appendChild(iframe);
+
+            // 5. Vis spillområdet
+            gameArea.style.display = 'flex';
+        }
+
+        function showAnswer() {
+            const videoContainer = document.getElementById('videoContainer');
+            const revealBtn = document.getElementById('reveal-btn');
+
+            // Fjern blur
+            videoContainer.classList.remove('blurred');
+            
+            // Skjul fasit-knappen siden vi nå ser svaret
+            revealBtn.style.display = 'none';
+        }
+
+        function extractVideoID(url) {
+            // Håndterer både youtube.com/shorts/ID og vanlig youtube.com/watch?v=ID
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+            const match = url.match(regExp);
+
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+    </script>
+
+</body>
+</html>
