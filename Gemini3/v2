@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Short - Pro Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f8;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        h1 { margin-bottom: 10px; }
+
+        .main-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        /* Videovisning */
+        .video-wrapper {
+            flex: 0 0 315px; /* Fast bredde for Shorts */
+        }
+
+        #video-placeholder {
+            width: 315px;
+            height: 560px;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        /* Blur effekt */
+        .is-blurred {
+            filter: blur(30px);
+            transform: scale(1.1);
+            pointer-events: none; /* Hindrer klikk på videoen mens den er blurret */
+        }
+        
+        /* Kontrollpanel */
+        .controls-panel {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 2px 15px rgba(0,0,0,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            height: fit-content;
+        }
+
+        /* Input grupper */
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        label {
+            font-weight: 600;
+            font-size: 0.9em;
+            color: #555;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        input[type="text"], input[type="number"] {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            flex-grow: 1;
+        }
+
+        /* Knapper */
+        button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.2s;
+            background-color: #e2e6ea;
+            color: #333;
+        }
+
+        button:hover { background-color: #dbe0e5; }
+
+        button.primary {
+            background-color: #007bff;
+            color: white;
+            width: 100%;
+        }
+        button.primary:hover { background-color: #0056b3; }
+
+        button.reveal {
+            background-color: #28a745;
+            color: white;
+            width: 100%;
+            font-size: 1.1em;
+            padding: 15px;
+        }
+        button.reveal:hover { background-color: #218838; }
+
+        button.active {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        /* Toggle switch for Loop */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #007bff; }
+        input:checked + .slider:before { transform: translateX(26px); }
+
+    </style>
+    <!-- Laster inn YouTube API -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+<body>
+
+    <h1>YouTube Short Lab</h1>
+
+    <div class="main-container">
+        
+        <!-- Venstre side: Video -->
+        <div class="video-wrapper">
+            <!-- APIet vil erstatte denne div-en med videoen -->
+            <div id="video-placeholder"></div>
+            <br>
+            <button id="btn-reveal" class="reveal" onclick="revealVideo()">VIS FASIT</button>
+        </div>
+
+        <!-- Høyre side: Kontroller -->
+        <div class="controls-panel">
+            
+            <!-- URL Input -->
+            <div class="control-group">
+                <label>YouTube URL</label>
+                <div class="input-row">
+                    <input type="text" id="url-input" placeholder="Lim inn short-lenke..." onkeypress="handleEnter(event)">
+                    <button class="primary" style="width: auto;" onclick="loadNewVideo()">Last inn</button>
+                </div>
+            </div>
+
+            <hr style="width:100%; border: 0; border-top: 1px solid #eee;">
+
+            <!-- Loop Controls -->
+            <div class="toggle-container">
+                <label class="switch">
+                    <input type="checkbox" id="loop-toggle" checked>
+                    <span class="slider"></span>
+                </label>
+                <strong>Loop enabled</strong>
+            </div>
+
+            <div class="input-row">
+                <div class="control-group" style="flex:1">
+                    <label>Start (sek)</label>
+                    <div class="input-row">
+                        <input type="number" id="loop-start" value="0" step="0.1">
+                        <button onclick="setStartToNow()">Nå</button>
+                    </div>
+                </div>
+                <div class="control-group" style="flex:1">
+                    <label>Slutt (sek)</label>
+                    <div class="input-row">
+                        <input type="number" id="loop-end" value="10" step="0.1">
+                        <button onclick="setEndToNow()">Nå</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Speed Controls -->
+            <div class="control-group">
+                <label>Hastighet</label>
+                <div class="input-row" id="speed-buttons">
+                    <button onclick="setSpeed(0.25)">0.25x</button>
+                    <button onclick="setSpeed(0.5)">0.5x</button>
+                    <button onclick="setSpeed(0.75)">0.75x</button>
+                    <button onclick="setSpeed(1)" class="active">1x</button>
+                </div>
+            </div>
+
+            <!-- Navigation Controls -->
+            <div class="control-group">
+                <label>Navigasjon</label>
+                <div class="input-row">
+                    <button onclick="jumpToLoopStart()" style="flex:2">Til Loop Start</button>
+                    <button onclick="seekRelative(-5)">- 5s</button>
+                    <button onclick="seekRelative(5)">+ 5s</button>
+                </div>
+            </div>
+            
+            <button class="primary" onclick="togglePlayPause()">Play / Pause</button>
+
+        </div>
+    </div>
+
+    <script>
+        let player;
+        let loopInterval;
+        let isRevealed = false;
+
+        // 1. Denne funksjonen kjøres automatisk av YouTube API når det er klart
+        function onYouTubeIframeAPIReady() {
+            // Vi laster ikke videoen før brukeren trykker "Last inn", 
+            // men vi klargjør funksjonen.
+        }
+
+        // 2. Funksjon for å laste inn videoen
+        function loadNewVideo() {
+            const url = document.getElementById('url-input').value;
+            const videoId = extractVideoID(url);
+
+            if (!videoId) {
+                alert("Ugyldig URL");
+                return;
+            }
+
+            // Reset UI
+            resetReveal();
+
+            // Hvis spilleren allerede finnes, last ny video
+            if (player) {
+                player.loadVideoById(videoId);
+                // Sett blur igjen hvis den var fjernet
+                document.getElementById('video-placeholder').classList.add('is-blurred');
+            } else {
+                // Opprett spilleren for første gang
+                player = new YT.Player('video-placeholder', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: videoId,
+                    playerVars: {
+                        'playsinline': 1,
+                        'rel': 0,
+                        'controls': 1 // Vi beholder youtube-kontroller også for sikkerhets skyld
+                    },
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange
+                    }
+                });
+                
+                // Legg på blur-klassen på iframe som APIet lagde
+                // Vi må vente litt til APIet har byttet ut div-en med iframe
+                setTimeout(() => {
+                    document.getElementById('video-placeholder').classList.add('is-blurred');
+                }, 500);
+            }
+        }
+
+        function onPlayerReady(event) {
+            event.target.playVideo();
+            startLoopMonitor();
+            
+            // Sett total lengde i "Slutt"-feltet som standard
+            setTimeout(() => {
+                const duration = player.getDuration();
+                if(document.getElementById('loop-end').value == "10") { // Bare hvis ikke endret av bruker
+                   document.getElementById('loop-end').value = duration.toFixed(1); 
+                }
+            }, 1000);
+        }
+
+        function onPlayerStateChange(event) {
+            // Kan brukes til å oppdage play/pause
+        }
+
+        // --- Loop Logikk ---
+        // YouTube har ikke innebygget "del-loop" i APIet, så vi lager en timer som sjekker tiden.
+        function startLoopMonitor() {
+            if (loopInterval) clearInterval(loopInterval);
+            
+            loopInterval = setInterval(() => {
+                if (!player || !player.getCurrentTime) return;
+
+                const isLooping = document.getElementById('loop-toggle').checked;
+                if (!isLooping) return;
+
+                const currentTime = player.getCurrentTime();
+                const startTime = parseFloat(document.getElementById('loop-start').value) || 0;
+                const endTime = parseFloat(document.getElementById('loop-end').value) || player.getDuration();
+
+                // Hvis vi har passert slutt-tiden
+                if (currentTime >= endTime) {
+                    player.seekTo(startTime);
+                }
+                // Sikkerhet: Hvis bruker spoler til FØR start-tiden, la den spille, men loopen fanger den ved slutt.
+            }, 200); // Sjekker 5 ganger i sekundet
+        }
+
+        // --- Kontroll Funksjoner ---
+
+        function revealVideo() {
+            const iframe = document.querySelector('#video-placeholder, #video-placeholder iframe');
+            const btn = document.getElementById('btn-reveal');
+            
+            if (!isRevealed) {
+                // Vis fasit
+                iframe.classList.remove('is-blurred');
+                btn.innerText = "SKJUL FASIT (BLUR)";
+                btn.style.backgroundColor = "#6c757d";
+                isRevealed = true;
+            } else {
+                // Skjul igjen
+                iframe.classList.add('is-blurred');
+                btn.innerText = "VIS FASIT";
+                btn.style.backgroundColor = "#28a745";
+                isRevealed = false;
+            }
+        }
+
+        function resetReveal() {
+             const btn = document.getElementById('btn-reveal');
+             const wrapper = document.getElementById('video-placeholder');
+             // Prøv å finne iframen hvis APIet har lastet
+             const iframe = document.querySelector('#video-placeholder iframe');
+             
+             isRevealed = false;
+             btn.innerText = "VIS FASIT";
+             btn.style.backgroundColor = "#28a745";
+             
+             if(iframe) iframe.classList.add('is-blurred');
+             else wrapper.classList.add('is-blurred');
+        }
+
+        function setStartToNow() {
+            if(player) {
+                const t = player.getCurrentTime();
+                document.getElementById('loop-start').value = t.toFixed(1);
+            }
+        }
+
+        function setEndToNow() {
+            if(player) {
+                const t = player.getCurrentTime();
+                document.getElementById('loop-end').value = t.toFixed(1);
+            }
+        }
+
+        function setSpeed(rate) {
+            if (player) {
+                player.setPlaybackRate(rate);
+                
+                // Oppdater knappestil
+                const buttons = document.getElementById('speed-buttons').getElementsByTagName('button');
+                for (let btn of buttons) {
+                    btn.classList.remove('active');
+                    if (btn.innerText.includes(rate + 'x')) {
+                        btn.classList.add('active');
+                    }
+                }
+            }
+        }
+
+        function seekRelative(seconds) {
+            if (player) {
+                const current = player.getCurrentTime();
+                player.seekTo(current + seconds, true);
+            }
+        }
+
+        function jumpToLoopStart() {
+            if(player) {
+                const start = parseFloat(document.getElementById('loop-start').value) || 0;
+                player.seekTo(start, true);
+            }
+        }
+        
+        function togglePlayPause() {
+            if(!player) return;
+            const state = player.getPlayerState();
+            if(state === 1) player.pauseVideo(); // 1 = Playing
+            else player.playVideo();
+        }
+
+        function extractVideoID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function handleEnter(e) {
+            if(e.key === "Enter") loadNewVideo();
+        }
+    </script>
+</body>
+</html>
