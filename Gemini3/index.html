@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YouTube Short Lab - Ultimate</title>
+    <style>
+        :root {
+            --bg-main: #121212;
+            --bg-panel: #1e1e1e;
+            --bg-input: #2a2a2a;
+            --text-main: #ffffff;
+            --text-dim: #aaaaaa;
+            --accent: #3ea6ff;       /* YouTube Blå */
+            --accent-red: #ff4e45;   /* YouTube Rød */
+            --success: #2ba640;      /* Grønn */
+            --border: #333333;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-main);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Hindrer scroll på hele siden, vi scroller innholdet */
+        }
+
+        /* --- HEADER --- */
+        header {
+            background-color: var(--bg-panel);
+            border-bottom: 1px solid var(--border);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .brand span { color: var(--accent-red); }
+
+        .url-bar {
+            display: flex;
+            gap: 10px;
+            width: 50%;
+            max-width: 600px;
+        }
+
+        input[type="text"] {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            flex-grow: 1;
+            font-size: 14px;
+        }
+        input:focus { outline: 1px solid var(--accent); }
+
+        button.btn-sm {
+            padding: 8px 15px;
+            background: var(--accent);
+            border: none;
+            color: black;
+            font-weight: bold;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button.btn-sm:hover { opacity: 0.9; }
+
+        /* --- MAIN CONTENT --- */
+        .main-area {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 130px); /* Header + Footer høyde trukket fra */
+            padding: 20px;
+            gap: 20px;
+            justify-content: center;
+        }
+
+        /* Venstre: Video */
+        .video-section {
+            flex: 0 0 350px; /* Litt bredere enn videoen for luft */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        #video-container {
+            width: 315px;
+            height: 560px;
+            background: #000;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            border: 1px solid #333;
+        }
+
+        /* Blur CSS */
+        .is-blurred {
+            filter: blur(10px) brightness(0.4);
+            transform: scale(1.05);
+            pointer-events: none;
+            transition: filter 0.3s ease, transform 0.3s ease;
+        }
+
+        /* Høyre: Kontroller */
+        .controls-section {
+            flex: 1;
+            max-width: 700px;
+            background: var(--bg-panel);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            overflow-y: auto; /* Scroller hvis skjermen er for lav */
+        }
+
+        h3 { margin: 0 0 10px 0; font-size: 14px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; border-bottom: 1px solid #333; padding-bottom: 5px;}
+
+        /* --- TIDSLINJE --- */
+        .timeline-box {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+        
+        .time-labels {
+            display: flex;
+            justify-content: space-between;
+            font-family: monospace;
+            font-size: 14px;
+            color: var(--accent);
+        }
+
+        /* Custom Range Slider Styling */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+            margin: 10px 0;
+        }
+        
+        input[type=range]:focus { outline: none; }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #333;
+            border-radius: 4px;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            background: var(--accent-red);
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -6px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+
+        /* --- LOOP SECTION --- */
+        .loop-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .input-with-btn {
+            display: flex;
+            gap: 5px;
+        }
+
+        .input-with-btn input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .btn-now {
+            background: #333;
+            color: white;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 0 10px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-now:hover { background: #444; }
+
+        /* --- SPEED SECTION --- */
+        .speed-buttons {
+            display: flex;
+            gap: 10px;
+            background: var(--bg-input);
+            padding: 5px;
+            border-radius: 6px;
+        }
+
+        .btn-speed {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-speed:hover { background: rgba(255,255,255,0.05); color: white; }
+        .btn-speed.active { background: var(--accent); color: #000; font-weight: bold; }
+
+        /* --- TRANSPORT (Play/Nav) --- */
+        .transport-controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-top: auto; /* Dytt nedover */
+        }
+
+        .btn-play {
+            width: 100%;
+            padding: 15px;
+            background: white;
+            color: black;
+            font-size: 18px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .btn-play:active { transform: scale(0.98); }
+        .btn-play.paused { background: var(--accent); } /* Blå når den er paused */
+
+        .nav-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .btn-nav {
+            flex: 1;
+            padding: 10px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn-nav:hover { background: #333; }
+
+
+        /* --- FOOTER BAR (Toggles) --- */
+        .bottom-bar {
+            height: 60px;
+            background: var(--bg-panel);
+            border-top: 1px solid var(--border);
+            display: flex;
+            /* Deler i to store knapper */
+        }
+
+        .toggle-btn {
+            flex: 1;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        /* BLUR BUTTON STYLES */
+        #btn-blur-toggle {
+            background: var(--bg-panel); 
+            color: var(--text-dim);
+            border-right: 1px solid var(--border);
+        }
+        #btn-blur-toggle.active {
+            background: var(--accent-red); /* Rød når blur er PÅ */
+            color: white;
+        }
+        #btn-blur-toggle.revealed {
+            background: var(--success); /* Grønn når fasit vises */
+            color: white;
+        }
+
+        /* LOOP BUTTON STYLES */
+        #btn-loop-toggle {
+            background: var(--bg-panel);
+            color: var(--text-dim);
+        }
+        #btn-loop-toggle.active {
+            background: var(--accent); /* Blå når loop er PÅ */
+            color: black;
+        }
+
+        /* Status ikoner (bare sirkler) */
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: 0.5;
+        }
+        .active .status-dot { opacity: 1; box-shadow: 0 0 5px white; }
+
+    </style>
+    <script src="https://www.youtube.com/iframe_api"></script>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            LAB <span>Shorts</span>
+        </div>
+        <div class="url-bar">
+            <input type="text" id="url-input" placeholder="Lim inn YouTube Short-lenke her..." onkeypress="handleEnter(event)">
+            <button class="btn-sm" onclick="loadNewVideo()">LAST INN</button>
+        </div>
+    </header>
+
+    <div class="main-area">
+        
+        <!-- VENSTRE: VIDEO -->
+        <div class="video-section">
+            <div id="video-container">
+                <!-- Iframe havner her -->
+            </div>
+        </div>
+
+        <!-- HØYRE: KONTROLLER -->
+        <div class="controls-section">
+            
+            <!-- TIDSLINJE -->
+            <div class="timeline-box">
+                <h3>Tidslinje</h3>
+                <div class="time-labels">
+                    <span id="current-time">0:00</span>
+                    <span id="total-time">0:00</span>
+                </div>
+                <input type="range" id="timeline" min="0" max="100" step="0.01" value="0" oninput="userSeekStart()" onchange="userSeekEnd()">
+            </div>
+
+            <!-- LOOP -->
+            <div class="loop-box">
+                <h3>Loop Innstillinger</h3>
+                <div class="loop-grid">
+                    <div class="input-group">
+                        <label style="font-size:12px; color:#888;">START (sek)</label>
+                        <div class="input-with-btn">
+                            <input type="number" id="loop-start" value="0" step="0.1">
+                            <button class="btn-now" onclick="setStartToNow()">NÅ</button>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label style="font-size:12px; color:#888;">SLUTT (sek)</label>
+                        <div class="input-with-btn">
+                            <input type="number" id="loop-end" value="10" step="0.1">
+                            <button class="btn-now" onclick="setEndToNow()">NÅ</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TEMPO -->
+            <div class="speed-box">
+                <h3>Avspillingshastighet</h3>
+                <div class="speed-buttons" id="speed-btns">
+                    <button class="btn-speed" onclick="setSpeed(0.25)">0.25x</button>
+                    <button class="btn-speed" onclick="setSpeed(0.5)">0.50x</button>
+                    <button class="btn-speed" onclick="setSpeed(0.75)">0.75x</button>
+                    <button class="btn-speed active" onclick="setSpeed(1)">1.0x</button>
+                </div>
+            </div>
+
+            <!-- TRANSPORT -->
+            <div class="transport-controls">
+                <button id="btn-play" class="btn-play paused" onclick="togglePlay()">PLAY</button>
+                
+                <div class="nav-row">
+                    <button class="btn-nav" onclick="seekRelative(-5)">- 5s</button>
+                    <button class="btn-nav" onclick="goToLoopStart()">Til Loop Start</button>
+                    <button class="btn-nav" onclick="seekRelative(5)">+ 5s</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- BOTTOM BAR -->
+    <div class="bottom-bar">
+        <button id="btn-blur-toggle" class="toggle-btn active" onclick="toggleBlur()">
+            <span class="status-dot"></span> BLUR VIDEO (PÅ)
+        </button>
+        <button id="btn-loop-toggle" class="toggle-btn active" onclick="toggleLoop()">
+            <span class="status-dot"></span> AUTO-LOOP (PÅ)
+        </button>
+    </div>
+
+    <script>
+        let player;
+        let isDragging = false; // For å hindre tidslinje-krøll når man drar
+        let isLooping = true;
+        let isBlurred = true;
+        let animationFrameId;
+
+        // --- YOUTUBE API ---
+        function onYouTubeIframeAPIReady() {
+            // Venter på bruker action
+        }
+
+        function loadNewVideo() {
+            const url = document.getElementById('url-input').value;
+            const videoId = extractVideoID(url);
+
+            if (!videoId) {
+                alert("Fant ikke video ID. Sjekk linken.");
+                return;
+            }
+
+            // Reset Blur state
+            isBlurred = true;
+            updateBlurBtn();
+            applyBlur();
+
+            if (player) {
+                player.loadVideoById(videoId);
+            } else {
+                player = new YT.Player('video-container', {
+                    height: '100%',
+                    width: '100%',
+                    videoId: videoId,
+                    playerVars: { 
+                        'playsinline': 1, 
+                        'controls': 0, // Vi bruker våre egne kontrollere
+                        'disablekb': 1, 
+                        'rel': 0 
+                    },
+                    events: {
+                        'onReady': onPlayerReady,
+                        'onStateChange': onPlayerStateChange
+                    }
+                });
+                // Forsinket blur påslag for å være sikker på at iframe er rendret
+                setTimeout(applyBlur, 500);
+            }
+        }
+
+        function onPlayerReady(event) {
+            event.target.playVideo();
+            
+            // Sett opp timeline max verdi
+            const dur = player.getDuration();
+            document.getElementById('timeline').max = dur;
+            document.getElementById('total-time').innerText = formatTime(dur);
+            
+            // Hvis loop end ikke er satt av bruker, sett til duration
+            if(document.getElementById('loop-end').value == "10") {
+                document.getElementById('loop-end').value = dur.toFixed(1);
+            }
+
+            // Start animasjonsloop for glatt tidslinje
+            updateLoop();
+        }
+
+        function onPlayerStateChange(event) {
+            const btn = document.getElementById('btn-play');
+            // 1 = playing
+            if (event.data === 1) {
+                btn.innerText = "PAUSE";
+                btn.classList.remove('paused');
+            } else {
+                btn.innerText = "PLAY";
+                btn.classList.add('paused');
+            }
+        }
+
+        // --- MAIN UPDATE LOOP (60fps) ---
+        function updateLoop() {
+            if (player && player.getCurrentTime) {
+                const current = player.getCurrentTime();
+                const duration = player.getDuration();
+
+                // 1. Oppdater tidslinje (hvis man ikke drar i den)
+                if (!isDragging) {
+                    const timeline = document.getElementById('timeline');
+                    timeline.value = current;
+                    // Sikre at max er oppdatert (noen ganger er duration 0 i starten)
+                    if (duration > 0) timeline.max = duration;
+                    
+                    document.getElementById('current-time').innerText = formatTime(current);
+                    document.getElementById('total-time').innerText = formatTime(duration);
+                }
+
+                // 2. Sjekk Loop
+                if (isLooping) {
+                    const start = parseFloat(document.getElementById('loop-start').value) || 0;
+                    const end = parseFloat(document.getElementById('loop-end').value) || duration;
+                    
+                    // Buffer på 0.1s for å unngå crazy looping
+                    if (current >= end && end > start) {
+                        player.seekTo(start, true);
+                    }
+                }
+            }
+            // Be nettleseren kjøre denne funksjonen igjen ved neste skjermoppdatering
+            animationFrameId = requestAnimationFrame(updateLoop);
+        }
+
+
+        // --- UI CONTROLS ---
+
+        function userSeekStart() {
+            isDragging = true;
+            // Oppdater tekst mens man drar
+            const val = document.getElementById('timeline').value;
+            document.getElementById('current-time').innerText = formatTime(val);
+        }
+
+        function userSeekEnd() {
+            // Når man slipper musa
+            const val = document.getElementById('timeline').value;
+            if(player) player.seekTo(val, true);
+            isDragging = false;
+        }
+
+        function togglePlay() {
+            if(!player) return;
+            if(player.getPlayerState() === 1) player.pauseVideo();
+            else player.playVideo();
+        }
+
+        function seekRelative(sec) {
+            if(!player) return;
+            const now = player.getCurrentTime();
+            player.seekTo(now + sec, true);
+        }
+
+        function goToLoopStart() {
+            if(!player) return;
+            const start = parseFloat(document.getElementById('loop-start').value) || 0;
+            player.seekTo(start, true);
+        }
+
+        // --- SETTINGS (Loop/Blur/Speed) ---
+
+        function toggleLoop() {
+            isLooping = !isLooping;
+            const btn = document.getElementById('btn-loop-toggle');
+            if (isLooping) {
+                btn.classList.add('active');
+                btn.innerHTML = '<span class="status-dot"></span> AUTO-LOOP (PÅ)';
+            } else {
+                btn.classList.remove('active');
+                btn.innerHTML = '<span class="status-dot"></span> AUTO-LOOP (AV)';
+            }
+        }
+
+        function toggleBlur() {
+            isBlurred = !isBlurred;
+            updateBlurBtn();
+            applyBlur();
+        }
+
+        function updateBlurBtn() {
+            const btn = document.getElementById('btn-blur-toggle');
+            if (isBlurred) {
+                btn.classList.add('active');
+                btn.classList.remove('revealed');
+                btn.innerHTML = '<span class="status-dot"></span> BLUR VIDEO (PÅ)';
+            } else {
+                btn.classList.remove('active');
+                btn.classList.add('revealed');
+                btn.innerHTML = '<span class="status-dot"></span> FASIT VIST (ÅPEN)';
+            }
+        }
+
+        function applyBlur() {
+            const container = document.getElementById('video-container');
+            // Prøv å treffe iframe hvis den finnes, ellers container
+            const iframe = container.querySelector('iframe');
+            const target = iframe || container;
+
+            if (isBlurred) {
+                target.classList.add('is-blurred');
+            } else {
+                target.classList.remove('is-blurred');
+            }
+        }
+
+        function setStartToNow() {
+            if(player) document.getElementById('loop-start').value = player.getCurrentTime().toFixed(1);
+        }
+        
+        function setEndToNow() {
+            if(player) document.getElementById('loop-end').value = player.getCurrentTime().toFixed(1);
+        }
+
+        function setSpeed(rate) {
+            if(!player) return;
+            player.setPlaybackRate(rate);
+            
+            // Update UI
+            const btns = document.getElementById('speed-btns').children;
+            for (let btn of btns) {
+                btn.classList.remove('active');
+                if(btn.innerText.includes(rate + 'x') || (rate===1 && btn.innerText === '1.0x')) {
+                    btn.classList.add('active');
+                }
+            }
+        }
+
+        // --- UTILS ---
+        function extractVideoID(url) {
+            const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/)([^#&?]*).*/;
+            const match = url.match(regExp);
+            return (match && match[2].length === 11) ? match[2] : null;
+        }
+
+        function formatTime(sec) {
+            if (!sec) return "0:00";
+            const m = Math.floor(sec / 60);
+            const s = Math.floor(sec % 60);
+            return m + ":" + (s < 10 ? "0" : "") + s;
+        }
+
+        function handleEnter(e) {
+            if(e.key === "Enter") loadNewVideo();
+        }
+    </script>
+</body>
+</html>
